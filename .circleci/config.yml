@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   bazel-build-all:
     docker:
-      - image: docker.io/envoyproxy/envoy-build:99bbf423a0d1ff5a7332fb1e23bd62b90754fcd2
+      - image: docker.io/envoyproxy/envoy-build@sha256:afe3addcdb7a5177bcca77d041f079acf4a6c5fb32701aadb2ab96fd0933e0b2
     steps:
       - checkout
       - run:
