@@ -15,6 +15,8 @@ jobs:
           name: Build as much as possible with Bazel
           no_output_timeout: 30m
           command: |
+            set -euo pipefail
+
             # Keep going so we can capture as many build results as possible.
             bazel build \
               --config=clang \
@@ -22,7 +24,38 @@ jobs:
               --keep_going \
               -- \
               //... \
-              -//distribution/...
+              -//distribution/... \
+              -//tools/dependency:cves-scanned &
+            bazel_pid=$!
+
+            echo "[fd-monitor] Started Bazel with pid=${bazel_pid}"
+            echo "[fd-monitor] Sampling open file descriptors every 30s"
+
+            (
+              while kill -0 "${bazel_pid}" 2>/dev/null; do
+                ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                if [ -d "/proc/${bazel_pid}/fd" ]; then
+                  fd_count=$(ls -1 "/proc/${bazel_pid}/fd" 2>/dev/null | wc -l | tr -d ' ')
+                  fd_limit=$(awk '/Max open files/ {print $4 "/" $5}' "/proc/${bazel_pid}/limits" 2>/dev/null || echo "unknown")
+                  echo "[fd-monitor] ${ts} bazel_pid=${bazel_pid} open_fds=${fd_count} max_open_files=${fd_limit}"
+                else
+                  echo "[fd-monitor] ${ts} /proc/${bazel_pid}/fd unavailable"
+                fi
+                sleep 30
+              done
+            ) &
+            fd_monitor_pid=$!
+
+            set +e
+            wait "${bazel_pid}"
+            bazel_exit=$?
+            set -e
+
+            kill "${fd_monitor_pid}" 2>/dev/null || true
+            wait "${fd_monitor_pid}" 2>/dev/null || true
+
+            echo "[fd-monitor] Bazel exited with code ${bazel_exit}"
+            exit "${bazel_exit}"
 
 workflows:
   bazel:
