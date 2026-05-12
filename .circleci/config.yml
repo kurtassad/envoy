@@ -1,0 +1,31 @@
+version: 2.1
+
+jobs:
+  bazel-build-all:
+    docker:
+      - image: docker.io/envoyproxy/envoy-build:99bbf423a0d1ff5a7332fb1e23bd62b90754fcd2
+    steps:
+      - checkout
+      - run:
+          name: Bazel environment
+          command: |
+            bazel --version
+            bazel info release
+      - run:
+          name: Build as much as possible with Bazel
+          no_output_timeout: 30m
+          command: |
+            # Keep going so we can capture as many build results as possible.
+            bazel build \
+              --config=clang \
+              --config=ci \
+              --keep_going \
+              //... \
+              -//api/... \
+              -//docs/... \
+              -//mobile/...
+
+workflows:
+  bazel:
+    jobs:
+      - bazel-build-all
