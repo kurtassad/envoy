@@ -20,6 +20,7 @@ jobs:
               --config=clang \
               --config=ci \
               --keep_going \
+              -- \
               //... \
               -//api/... \
               -//docs/... \
