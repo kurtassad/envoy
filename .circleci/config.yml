@@ -22,9 +22,7 @@ jobs:
               --keep_going \
               -- \
               //... \
-              -//api/... \
-              -//docs/... \
-              -//mobile/...
+              -//distribution/...
 
 workflows:
   bazel:
